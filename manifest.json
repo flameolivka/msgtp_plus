@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MSGTP+",
-  "version": "1.1.0",
+  "version": "1.3.2",
+  "minimum_chrome_version": "114",
   "description": "Расширение для работы с чатами MSGTP+. Разработано @fl_rossi",
   "permissions": [
     "activeTab",

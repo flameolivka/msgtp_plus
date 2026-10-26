@@ -43,6 +43,30 @@
         </fieldset>
         <p id="status" role="status" aria-live="polite"></p>
     </form>
+    <section class="vault-section">
+        <h2>Авто. вход на домен</h2>
+        <p class="hint vault-intro">Один логин и пароль для всех разрешённых доменов на странице /auth.php.</p>
+        <fieldset id="vault-controls" disabled>
+        <div class="segmented-control" role="group" aria-label="Авто. вход на домен">
+            <label><input id="vault-auto-on" type="radio" name="vault-enabled" value="on" checked><span>Включить</span></label>
+            <label><input id="vault-auto-off" type="radio" name="vault-enabled" value="off"><span>Выключить</span></label>
+        </div>
+        <div id="vault-account" class="account-card" role="status" aria-live="polite" hidden>
+            <span class="account-indicator" aria-hidden="true"></span>
+            <div class="account-info"><strong id="vault-account-title"></strong><p id="vault-account-detail"></p></div>
+            <button type="button" id="vault-delete">Удалить аккаунт</button>
+        </div>
+        <form id="vault-form" autocomplete="off" hidden>
+                <label for="vault-username">Логин</label>
+                <input id="vault-username" type="text" autocomplete="off" spellcheck="false" maxlength="1024" placeholder="Логин" required>
+                <label for="vault-password">Пароль</label>
+                <input id="vault-password" type="password" autocomplete="new-password" maxlength="4096" placeholder="Пароль" required>
+                <div class="actions"><button type="submit" class="primary">Сохранить</button><button type="reset" id="vault-reset">Сбросить</button></div>
+        </form>
+        </fieldset>
+        <p id="vault-status" role="status" aria-live="polite">Загрузка аккаунта…</p>
+        <p id="vault-inactive" class="module-warning" role="status" hidden><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg><span>Модуль неактивен</span></p>
+    </section>
     <footer><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="6"/></svg><span>После сохранения изменения применятся<br>и в открытых чатах.</span></footer>
     </main>
 </body>

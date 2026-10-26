@@ -2,6 +2,12 @@
    1. ИНФОРМАЦИОННАЯ КАРТОЧКА MSGTP+ (Быстрые пасты)
    ============================================================= */
 
+.msgtp-auth-status {
+    font: 12px/1.5 "Segoe UI", sans-serif;
+    color: #737373;
+    margin: 12px 0;
+}
+
 section.msgtp-info-card {
     font-family: "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 13px;
