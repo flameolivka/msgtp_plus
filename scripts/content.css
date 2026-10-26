@@ -1,0 +1,328 @@
+/* =============================================================
+   1. ИНФОРМАЦИОННАЯ КАРТОЧКА MSGTP+ (Быстрые пасты)
+   ============================================================= */
+
+section.msgtp-info-card {
+    font-family: "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 17.55px;
+    background-color: rgb(23, 23, 23);
+    color: rgb(255, 255, 255);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid rgba(49, 49, 49, 0.54);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+}
+
+.msgtp-info-card .msgtp-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.msgtp-info-card .msgtp-card-row:first-child {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.msgtp-info-card .rightPanelCopyableText {
+    display: flex;
+    align-items: center;
+}
+
+.msgtp-header-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #a78bfa !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.msgtp-badge {
+    background: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.msgtp-mention-text {
+    color: #ffffff !important;
+    font-weight: 600;
+    margin-right: 6px;
+    line-height: 1;
+}
+
+.msgtp-action-btn {
+    transition: color 0.2s ease, transform 0.1s ease !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.msgtp-action-btn:hover {
+    color: #ffffff !important;
+    transform: scale(1.1);
+}
+
+.msgtp-action-btn:active {
+    transform: scale(0.95);
+}
+
+
+/* =============================================================
+   2. КНОПКИ В ШАПКЕ САЙТА (Helpdesk / Админ. ПО)
+   ============================================================= */
+
+li.msgtp-header-li {
+    display: inline-flex !important;
+    align-items: center !important;
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.msgtp-header-block {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 6px !important;
+    background: #3738387c !important;
+    border: 1px solid rgba(199, 198, 198, 0.85) !important;
+    border-radius: 5px !important;
+    margin: 0 8px 0 2px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+.msgtp-header-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #ffffff !important;
+    color: #dc2626 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    font-family: inherit !important;
+    padding: 4px 10px !important;
+    border-radius: 4px !important;
+    border: 1px solid transparent !important;
+    text-decoration: none !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    height: auto !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.msgtp-header-btn:hover,
+.msgtp-header-btn:focus,
+.msgtp-header-btn:active {
+    background-color: #f8fafc !important;
+    color: #b91c1c !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+    text-decoration: none !important;
+    opacity: 0.95 !important;
+}
+
+
+/* =============================================================
+   3. КНОПКА ВОЗВРАТА (Раздел Helpdesk)
+   ============================================================= */
+
+.msgtp-back-to-main-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    font-size: 13px !important;
+    padding: 3px 10px !important;
+    border-radius: 4px !important;
+    text-decoration: none !important;
+    transform: none !important;
+    transition: background-color 0.2s ease, color 0.2s ease !important;
+}
+
+.msgtp-admin-menu {
+    position: fixed;
+    z-index: 2147483647;
+    min-width: 210px;
+    max-width: calc(100vw - 16px);
+    padding: 5px;
+    border: 1px solid #ffffff24;
+    border-radius: 10px;
+    background: #1c1c1c;
+    box-shadow: 0 8px 30px #0006;
+    font: 13px/1.4 "Segoe UI", sans-serif;
+}
+
+.msgtp-admin-menu a {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: #ededed !important;
+    text-decoration: none !important;
+}
+
+.msgtp-admin-menu a:hover,
+.msgtp-admin-menu a:focus-visible {
+    background: #ffffff12;
+    outline: 1px solid #ffffff40;
+}
+
+.msgtp-back-to-main-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #3a3939 !important;
+}
+
+/* Передача списка чатов из модального окна */
+.sheetModalPlain__footer .msgtp-transfer-chats-btn {
+    background: #facc15 !important;
+    color: #1f2937 !important;
+    border: 1px solid #eab308 !important;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sheetModalPlain__footer .msgtp-transfer-chats-btn:hover {
+    background: #fde047 !important;
+}
+
+.sheetModalPlain__footer .msgtp-transfer-chats-btn:focus-visible {
+    outline: 2px solid #ca8a04;
+    outline-offset: 3px;
+}
+
+.sheetModalPlain__footer .msgtp-transfer-chats-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.msgtp-transfer-chats-status {
+    align-self: center;
+    font-size: 12px;
+    color: var(--secondary, #64748b);
+}
+
+/* =============================================================
+   ОПТИМИЗИРОВАННАЯ КАРТОЧКА ПК (/all_clubs_pc/)
+   ============================================================= */
+
+.msgtp-pc-card {
+    max-width: 140px !important;
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    overflow: hidden;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.msgtp-pc-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #cbd5e1 !important;
+}
+
+/* Шапка карточки */
+.msgtp-pc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffae00;
+    color: #1e293b;
+    padding: 4px 6px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* Выпадающее меню-шестеренка */
+.msgtp-pc-header .dropdown-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #1e293b !important;
+    padding: 0 4px !important;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* Статус ПК */
+.msgtp-pc-status {
+    font-size: 11px;
+    padding: 2px 4px;
+    text-align: center;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Блок информации о сессии */
+.msgtp-pc-info {
+    padding: 4px;
+    font-size: 11px;
+    text-align: center;
+    min-height: 48px;
+    background: #fafafa;
+}
+
+/* Сетка с чекбоксами (Посадка, Бронь, Ввод) */
+.msgtp-pc-checks {
+    display: flex;
+    justify-content: space-around;
+    padding: 4px 2px;
+    background: #fff;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.msgtp-pc-checks label {
+    font-size: 10px;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Панель основных быстрых кнопок */
+.msgtp-pc-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    padding: 4px;
+}
+
+.msgtp-pc-actions .btn {
+    padding: 3px 0 !important;
+    font-size: 11px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px !important;
+}
+
+/* Кнопка "Управлять" внизу */
+.msgtp-pc-manage {
+    width: 100%;
+    border-radius: 0 0 7px 7px !important;
+    font-size: 11px !important;
+    padding: 4px 0 !important;
+    font-weight: 600;
+}

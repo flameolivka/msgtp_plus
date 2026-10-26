@@ -1,0 +1,21 @@
+# IDE
+.idea/
+.vscode/
+
+# Локальные настройки и ключи
+.env
+.env.*
+!.env.example
+*.pem
+
+# Зависимости и сборки
+node_modules/
+dist/
+*.crx
+*.zip
+
+# Временные файлы
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "MSGTP+",
+  "version": "1.1.0",
+  "description": "Расширение для работы с чатами MSGTP+. Разработано @fl_rossi",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "MSGTP+ — настройки",
+    "default_popup": "popup/popup.html"
+  },
+  "background": { "service_worker": "scripts/background.js" },
+  "host_permissions": [
+    "https://*.langame.ru/*",
+    "https://*.langame-pr.ru/*",
+    "https://*.langame-soft.ru/*",
+    "https://*.langamepro.ru/*",
+    "https://*.cls.expert/*",
+    "https://*.cc.f5center.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*"]
+}
+
