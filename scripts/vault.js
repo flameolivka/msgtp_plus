@@ -6,8 +6,8 @@ globalThis.MSGTPVault = {
         const stored = await chrome.storage.local.get(this.preferenceKey);
         return stored[this.preferenceKey] !== false;
     },
-    async read() {
-        const record = await MSGTPCredentialStore.get();
+    async read(record = undefined) {
+        if (record === undefined) record = await MSGTPCredentialStore.get();
         if (!record) return null;
         try {
             const bytes = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: record.iv }, record.key, record.ciphertext);
@@ -21,29 +21,34 @@ globalThis.MSGTPVault = {
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key,
             new TextEncoder().encode(JSON.stringify(account)));
-        await MSGTPCredentialStore.put({ key, iv, ciphertext });
+        const record = { key, iv, ciphertext };
+        await MSGTPCredentialStore.put(record);
+        return record;
     },
     async clearLegacy() {
         for (const key of ['msgtpCredentialVault', 'msgtpAutoLogin']) await chrome.storage.local.remove(key);
         await chrome.storage.session.remove('msgtpUnlockedCredentials');
     },
     async migrate() {
-        if (await MSGTPCredentialStore.get()) return;
+        const existing = await MSGTPCredentialStore.get();
+        if (existing) return existing;
         const stored = await chrome.storage.session.get('msgtpUnlockedCredentials');
         const session = stored.msgtpUnlockedCredentials;
         const legacy = await chrome.storage.local.get('msgtpCredentialVault');
         if (session?.expiresAt > Date.now() && session.recordId === legacy.msgtpCredentialVault?.iv
             && session.username && session.password) {
-            await this.write({ username: session.username, password: session.password });
+            const record = await this.write({ username: session.username, password: session.password });
             await this.clearLegacy();
+            return record;
         } else if (session) {
             await chrome.storage.session.remove('msgtpUnlockedCredentials');
         }
+        return null;
     },
     async state() {
-        await this.migrate();
+        const record = await this.migrate();
         let account;
-        try { account = await this.read(); }
+        try { account = await this.read(record); }
         catch { return { saved: true, username: '', corrupt: true, enabled: await this.enabled() }; }
         const legacy = await chrome.storage.local.get('msgtpCredentialVault');
         return {
@@ -83,14 +88,14 @@ globalThis.MSGTPVault = {
             let tab;
             try { page = new URL(sender.url); tab = new URL(sender.tab.url); }
             catch { return { ok: false }; }
-            const settings = await MSGTPSettings.load();
             if (page.protocol !== 'https:' || page.port || page.pathname !== '/auth.php'
-                || page.origin !== tab.origin || tab.pathname !== '/auth.php'
-                || !MSGTPSettings.matches(page.hostname, settings.domains)) return { ok: false };
-            if (!await chrome.permissions.contains({ origins: [`${page.origin}/*`] })) return { ok: false };
-            if (!await this.enabled()) return { ok: false, disabled: true };
-            await this.migrate();
-            const account = await this.read();
+                || page.origin !== tab.origin || tab.pathname !== '/auth.php') return { ok: false };
+            const [settings, permission, enabled] = await Promise.all([
+                MSGTPSettings.load(), chrome.permissions.contains({ origins: [`${page.origin}/*`] }), this.enabled()
+            ]);
+            if (!permission || !MSGTPSettings.matches(page.hostname, settings.domains)) return { ok: false };
+            if (!enabled) return { ok: false, disabled: true };
+            const account = await this.read(await this.migrate());
             if (!account) return { ok: false };
             return { ok: true, username: account.username, password: account.password };
         }

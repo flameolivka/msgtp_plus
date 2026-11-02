@@ -1,6 +1,42 @@
 const form = document.getElementById('settings-form');
 const fields = document.getElementById('settings-fields');
 const status = document.getElementById('status');
+const categories = ['pastes', 'autologin', 'settings'];
+const pasteSwitches = ['transferEnabled', 'helpAdvEnabled', 'helpTehEnabled'];
+
+function selectCategory(category, focus = false) {
+    for (const name of categories) {
+        const selected = category === name;
+        const tab = document.getElementById(`tab-${name}`);
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        document.getElementById(`panel-${name}`).hidden = !selected;
+        if (selected && focus) tab.focus();
+    }
+    form.hidden = category === 'autologin';
+}
+
+for (const [index, category] of categories.entries()) {
+    const tab = document.getElementById(`tab-${category}`);
+    tab.addEventListener('click', () => selectCategory(category));
+    tab.addEventListener('keydown', event => {
+        let next;
+        if (event.key === 'ArrowRight') next = (index + 1) % categories.length;
+        else if (event.key === 'ArrowLeft') next = (index + categories.length - 1) % categories.length;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = categories.length - 1;
+        else return;
+        event.preventDefault();
+        selectCategory(categories[next], true);
+    });
+}
+
+function refreshPasteOptions() {
+    for (const key of pasteSwitches) {
+        document.getElementById(`${key}-options`).hidden = !document.getElementById(key).checked;
+    }
+}
+for (const key of pasteSwitches) document.getElementById(key).addEventListener('change', refreshPasteOptions);
 
 function showStatus(message, error = false) {
     status.textContent = message;
@@ -8,9 +44,12 @@ function showStatus(message, error = false) {
 }
 
 function fillSettings(settings) {
-    for (const key of Object.keys(MSGTPSettings.defaults)) {
-        form.elements.namedItem(key).value = settings[key];
+    for (const [key, fallback] of Object.entries(MSGTPSettings.defaults)) {
+        const control = form.elements.namedItem(key);
+        if (typeof fallback === 'boolean') control.checked = settings[key];
+        else control.value = settings[key];
     }
+    refreshPasteOptions();
 }
 
 async function persist(settings, message) {
@@ -41,7 +80,10 @@ async function persist(settings, message) {
 
 form.addEventListener('submit', event => {
     event.preventDefault();
-    const settings = Object.fromEntries(Object.keys(MSGTPSettings.defaults).map(key => [key, form.elements.namedItem(key).value]));
+    const settings = Object.fromEntries(Object.entries(MSGTPSettings.defaults).map(([key, fallback]) => {
+        const control = form.elements.namedItem(key);
+        return [key, typeof fallback === 'boolean' ? control.checked : control.value];
+    }));
     void persist(settings, 'Настройки сохранены');
 });
 

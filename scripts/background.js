@@ -1,6 +1,7 @@
 importScripts('settings.js', 'credential-store.js', 'vault.js');
 
 const scriptId = 'msgtp-enabled-domains';
+const authScriptId = 'msgtp-domain-auth';
 let syncQueue = Promise.resolve();
 let vaultQueue = Promise.resolve();
 
@@ -16,21 +17,29 @@ async function syncDomains() {
         await chrome.permissions.contains({ origins: [pattern] }) ? pattern : null
     ));
     const matches = allowed.filter(Boolean);
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [scriptId] });
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [scriptId, authScriptId] });
     if (!matches.length) {
-        if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [scriptId] });
+        if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: existing.map(script => script.id) });
         return;
     }
-    const script = {
+    const scripts = [{
         id: scriptId,
         matches,
-        js: ['scripts/settings.js', 'scripts/content.js', 'scripts/auth.js'],
+        js: ['scripts/settings.js', 'scripts/content.js'],
         css: ['scripts/content.css'],
         runAt: 'document_idle',
         persistAcrossSessions: true
-    };
-    if (existing.length) await chrome.scripting.updateContentScripts([script]);
-    else await chrome.scripting.registerContentScripts([script]);
+    }, {
+        id: authScriptId,
+        matches: matches.map(pattern => pattern.replace(/\/\*$/, '/auth.php*')),
+        js: ['scripts/settings.js', 'scripts/auth.js'],
+        runAt: 'document_start',
+        persistAcrossSessions: true
+    }];
+    for (const script of scripts) {
+        if (existing.some(entry => entry.id === script.id)) await chrome.scripting.updateContentScripts([script]);
+        else await chrome.scripting.registerContentScripts([script]);
+    }
 }
 
 function scheduleDomainSync() {

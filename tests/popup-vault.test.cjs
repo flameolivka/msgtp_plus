@@ -14,6 +14,7 @@ test('account card replaces form; whole-block switch and account deletion need n
         if (!elements.has(id)) elements.set(id, {
             value: '', checked: false, hidden: false, disabled: false, textContent: '', handlers: {},
             classes: new Set(),
+            setAttribute() {}, focus() {},
             classList: { add() {}, remove() {}, toggle(name, on) { element(id).classes[on ? 'add' : 'delete'](name); } },
             addEventListener(name, handler) { this.handlers[name] = handler; },
             elements: { namedItem: name => element(name) }

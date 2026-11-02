@@ -2,8 +2,14 @@
 globalThis.MSGTPSettings = {
     key: 'msgtpSettings',
     defaults: {
+        transferEnabled: true,
+        helpAdvEnabled: true,
+        helpTehEnabled: true,
+        shiftWorkEnabled: true,
+        shiftWeekendEnabled: true,
         transferMentions: '@tusovshicaaaa @LGS_adv_sup',
         helpMentions: '@LGS_adv_sup',
+        helpTehMentions: '@LGS_Teh_Sup @ghoultripless',
         questionTag: '#вопрос',
         domains: 'langame.ru\nlangame-pr.ru\nlangame-soft.ru\nlangamepro.ru\ncls.expert\ncc.f5center.com'
     },
@@ -32,11 +38,11 @@ globalThis.MSGTPSettings = {
         return this.parseDomains(value).some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
     },
     normalize(value = {}) {
-        return Object.fromEntries(Object.entries(this.defaults).map(([key, fallback]) => [
-            key, key === 'domains'
-                ? this.parseDomains(typeof value?.[key] === 'string' ? value[key] : fallback).join('\n')
-                : typeof value?.[key] === 'string' ? value[key].trim().replace(/\s+/g, ' ') : fallback
-        ]));
+        return Object.fromEntries(Object.entries(this.defaults).map(([key, fallback]) => {
+            if (key === 'domains') return [key, this.parseDomains(typeof value?.[key] === 'string' ? value[key] : fallback).join('\n')];
+            if (typeof fallback === 'boolean') return [key, typeof value?.[key] === 'boolean' ? value[key] : fallback];
+            return [key, typeof value?.[key] === 'string' ? value[key].trim().replace(/\s+/g, ' ') : fallback];
+        }));
     },
     async load() {
         const stored = await chrome.storage.local.get(this.key);

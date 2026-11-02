@@ -38,6 +38,15 @@ test('whole-block toggle stops credentials delivery while preserving saved login
     assert.equal(env.records.size, 0);
 });
 
+test('credential delivery reads the current account only once', async () => {
+    const env = setup();
+    await env.vault.save(credentials);
+    const before = env.reads;
+    const response = await env.vault.handle({ type: 'msgtp-vault-fill' }, env.page());
+    assert.equal(response.password, credentials.password);
+    assert.equal(env.reads - before, 1);
+});
+
 test('sender, HTTPS, whitelist, route, frame and permission gates', async () => {
     const env = setup();
     await env.vault.save(credentials);

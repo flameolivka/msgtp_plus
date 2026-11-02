@@ -8,6 +8,7 @@ function setup(shared = {}) {
     const session = shared.session || {};
     const records = shared.records || new Map();
     let permission = true;
+    let reads = 0;
     const area = data => ({
         async get(key) { return structuredClone({ [key]: data[key] }); },
         async set(value) { Object.assign(data, structuredClone(value)); },
@@ -34,7 +35,7 @@ function setup(shared = {}) {
                     return result;
                 };
                 transaction.objectStore = () => ({
-                    get: key => operation(() => structuredClone(records.get(key))),
+                    get: key => operation(() => { reads++; return structuredClone(records.get(key)); }),
                     put: (value, key) => operation(() => { records.set(key, structuredClone(value)); return key; }),
                     delete: key => operation(() => { records.delete(key); })
                 });
@@ -51,6 +52,7 @@ function setup(shared = {}) {
     }
     return {
         vault: context.MSGTPVault, local, session, records,
+        get reads() { return reads; },
         revoke() { permission = false; },
         popup: { id: chrome.runtime.id, url: chrome.runtime.getURL('popup/popup.html') },
         page(url = 'https://cc.f5center.com/auth.php') { return { id: chrome.runtime.id, frameId: 0, url, tab: { url } }; }

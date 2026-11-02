@@ -111,9 +111,18 @@ function getClubLink(card) {
     return { linkHref: href, cleanDisplayLink: href.replace(/^https?:\/\//i, '').replace(/\/$/, '') };
 }
 
-/**
- * Проверяет текущий хост по пользовательскому списку доменов.
- */
+function getClubFirstIp(scope) {
+    const selected = scope.querySelector('button[title="Выбранный IP"]');
+    const copy = scope.querySelector('button[title^="Скопировать IP "], button[aria-label^="Скопировать IP "]');
+    const candidates = [selected?.textContent, copy?.getAttribute('title'), copy?.getAttribute('aria-label')];
+    for (const text of candidates) {
+        const ip = text?.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0];
+        if (ip && ip.split('.').every(octet => Number(octet) <= 255)) return ip;
+    }
+    return '';
+}
+
+/** Проверяет текущий хост по пользовательскому списку доменов. */
 function isTargetDomain() {
     return MSGTPSettings.matches(window.location.hostname, userSettings.domains);
 }
@@ -124,10 +133,21 @@ function isTargetDomain() {
 // =============================================================
 
 function createMSGTPSection(clubInfoCard) {
-    if (document.querySelector('section.msgtp-info-card')) return;
+    const advEnabled = userSettings.helpAdvEnabled !== false;
+    const tehEnabled = userSettings.helpTehEnabled !== false;
+    const existing = document.querySelector('section.msgtp-info-card');
+    if (existing) {
+        existing.hidden = !advEnabled && !tehEnabled;
+        const adv = existing.querySelector('.msgtp-help-adv');
+        const teh = existing.querySelector('.msgtp-help-teh');
+        if (adv) adv.hidden = !advEnabled;
+        if (teh) teh.hidden = !tehEnabled;
+        return;
+    }
 
     const msgtpSection = document.createElement('section');
     msgtpSection.className = 'clubInfo clubInfoCard msgtp-info-card';
+    msgtpSection.hidden = !advEnabled && !tehEnabled;
 
     const headerRow = document.createElement('div');
     headerRow.className = 'kv msgtp-card-row';
@@ -185,7 +205,8 @@ function createMSGTPSection(clubInfoCard) {
         
         // При переключении чата сайт может заменить исходную карточку.
         const currentCard = document.querySelector('section.clubInfo:not(.msgtp-info-card)') || clubInfoCard;
-        return { titleText, ...getClubLink(currentCard) };
+        const firstIp = getClubFirstIp(currentCard) || getClubFirstIp(document);
+        return { titleText, ...getClubLink(currentCard), firstIp };
     }
 
     async function copyToClipboard(plainText, htmlText, btn) {
@@ -202,22 +223,34 @@ function createMSGTPSection(clubInfoCard) {
         }
     }
 
-    const handleCopyAction = async (e, btn, tag, mention) => {
+    const handleCopyAction = async (e, btn, tag, mention, includeIp = false) => {
         e.stopPropagation();
-        const { titleText, cleanDisplayLink } = getChatMeta();
-        const plainText = `${tag}\n\n${mention}\n\n${titleText}\n${cleanDisplayLink}\n\nСуть вопроса`;
-        const htmlText = `${escapeHtml(tag)}<br><br>${escapeHtml(mention)}<br><br>${escapeHtml(titleText)}<br>${escapeHtml(cleanDisplayLink)}<br><br>Суть вопроса`;
+        const { titleText, cleanDisplayLink, firstIp } = getChatMeta();
+        const details = [titleText, cleanDisplayLink];
+        if (includeIp && firstIp) details.push(firstIp);
+        const plainText = `${tag}\n\n${mention}\n\n${details.join('\n')}\n\nСуть вопроса`;
+        const htmlText = `${escapeHtml(tag)}<br><br>${escapeHtml(mention)}<br><br>${details.map(escapeHtml).join('<br>')}<br><br>Суть вопроса`;
         await copyToClipboard(plainText, htmlText, btn);
     };
 
     const questionRow = createPasteRow(
         'Помощь (adv)',
         'Скопировать заготовку вопроса',
-        (e, btn) => handleCopyAction(e, btn, userSettings.questionTag, userSettings.helpMentions)
+        (e, btn) => userSettings.helpAdvEnabled !== false && handleCopyAction(e, btn, userSettings.questionTag, userSettings.helpMentions)
     );
+    const tehRow = createPasteRow(
+        'Помощь (teh)',
+        'Скопировать заготовку вопроса технической поддержке',
+        (e, btn) => userSettings.helpTehEnabled !== false && handleCopyAction(e, btn, userSettings.questionTag, userSettings.helpTehMentions, true)
+    );
+    questionRow.className += ' msgtp-help-adv';
+    questionRow.hidden = !advEnabled;
+    tehRow.className += ' msgtp-help-teh';
+    tehRow.hidden = !tehEnabled;
 
     msgtpSection.appendChild(headerRow);
     msgtpSection.appendChild(questionRow);
+    msgtpSection.appendChild(tehRow);
 
     clubInfoCard.parentNode.insertBefore(msgtpSection, clubInfoCard);
 }
@@ -368,6 +401,24 @@ function injectBackToMainButton() {
 // 4. КОПИРОВАНИЕ ЧАТОВ ДЛЯ ПЕРЕДАЧИ
 // =============================================================
 
+const TRANSFER_FIELDS = [
+    { key: 'request', label: 'Запрос клуба:' },
+    { key: 'work', label: 'Проделанная работа:' },
+    { key: 'remaining', label: 'Осталось сделать:' }
+];
+// Черновики живут только на этой странице и переживают пересоздание окна сайтом.
+const transferDrafts = new Map();
+
+function getTransferNotes(card, chatKey) {
+    const editor = card.querySelector('.msgtp-transfer-fields');
+    const draft = transferDrafts.get(chatKey) || {};
+    return Object.fromEntries(TRANSFER_FIELDS.map(field => {
+        const input = editor?.dataset.chatKey === chatKey
+            ? editor.querySelector(`[data-transfer-field="${field.key}"]`) : null;
+        return [field.key, input?.value ?? draft[field.key] ?? ''];
+    }));
+}
+
 function getTransferChats(scope) {
     return Array.from(scope.querySelectorAll('button'))
         .filter(button => button.textContent.trim() === 'Открыть чат')
@@ -380,7 +431,10 @@ function getTransferChats(scope) {
                 return null;
             }
             const title = heading.replace(/^#[^\s·]+\s*·\s*/, '').trim();
-            return title ? { title, domain } : null;
+            if (!title) return null;
+            const chatId = heading.match(/^#[^\s·]+/)?.[0] || title;
+            const chatKey = `${chatId}\n${domain}`;
+            return { title, domain, card, chatKey, notes: getTransferNotes(card, chatKey) };
         })
         .filter(Boolean);
 }
@@ -397,17 +451,51 @@ function getTransferChatScope(footer) {
     return null;
 }
 
+function injectTransferChatFields(scope) {
+    for (const chat of getTransferChats(scope)) {
+        const existing = chat.card.querySelector('.msgtp-transfer-fields');
+        if (existing?.dataset.chatKey === chat.chatKey) continue;
+        existing?.remove();
+
+        const editor = document.createElement('div');
+        editor.className = 'msgtp-transfer-fields';
+        editor.dataset.chatKey = chat.chatKey;
+        editor.setAttribute('role', 'group');
+        editor.setAttribute('aria-label', `Информация для передачи чата: ${chat.title}`);
+        for (const field of TRANSFER_FIELDS) {
+            const label = document.createElement('label');
+            label.className = 'msgtp-transfer-field';
+            const caption = document.createElement('span');
+            caption.textContent = field.label;
+            const input = document.createElement('textarea');
+            input.rows = 2;
+            input.dataset.transferField = field.key;
+            input.value = chat.notes[field.key];
+            input.addEventListener('input', () => {
+                const draft = transferDrafts.get(chat.chatKey) || {};
+                transferDrafts.set(chat.chatKey, { ...draft, [field.key]: input.value });
+            });
+            label.append(caption, input);
+            editor.appendChild(label);
+        }
+        chat.card.appendChild(editor);
+    }
+}
+
 function formatTransferChats(chats) {
     const header = [userSettings.transferMentions, 'передай чаты, пожалуйста (передал на base):'].filter(Boolean).join('\n');
-    const fields = ['Запрос клуба:', 'Проделанная работа:', 'Осталось сделать:'];
+    const noteText = (chat, field) => (chat.notes?.[field.key] || '').replace(/\r\n?/g, '\n').trim();
 
     const plainText = `${header}\n\n${chats.map(chat =>
-        `${chat.title}\n${chat.domain}\n${fields.join('\n\n')}`
+        `${chat.title}\n${chat.domain}\n${TRANSFER_FIELDS.map(field => {
+            const note = noteText(chat, field);
+            return `${field.label}${note ? `\n${note}` : ''}`;
+        }).join('\n\n')}`
     ).join('\n\n')}`;
     // Поля каждого чата — единая цитата; переносы вне жирных/подчёркнутых подписей.
     const htmlText = `${escapeHtml(header).replace(/\n/g, '<br>')}<br><br>${chats.map(chat =>
-        `${escapeHtml(chat.title)}<br>${escapeHtml(chat.domain)}<blockquote>${fields.map(field =>
-            `<b><u>${escapeHtml(field)}</u></b>`
+        `${escapeHtml(chat.title)}<br>${escapeHtml(chat.domain)}<blockquote>${TRANSFER_FIELDS.map(field =>
+            `<b><u>${escapeHtml(field.label)}</u></b>${noteText(chat, field) ? `<br>${escapeHtml(noteText(chat, field)).replace(/\n/g, '<br>')}` : ''}`
         ).join('<br><br>')}</blockquote>`
     ).join('<br><br>')}`;
 
@@ -416,11 +504,16 @@ function formatTransferChats(chats) {
 
 function injectTransferChatsButtons() {
     if (window.location.hostname !== 'msgtp.langame.ru' || !/^\/im\/chat(?:\/|$)/.test(window.location.pathname)) return;
+    if (userSettings.transferEnabled === false) {
+        document.querySelectorAll('.msgtp-transfer-chats-btn, .msgtp-transfer-chats-status, .msgtp-transfer-fields').forEach(element => element.remove());
+        return;
+    }
 
     document.querySelectorAll('.sheetModalPlain__footer').forEach(footer => {
-        if (footer.querySelector('.msgtp-transfer-chats-btn')) return;
         const scope = getTransferChatScope(footer);
         if (!scope || !getTransferChats(scope).length) return;
+        injectTransferChatFields(scope);
+        if (footer.querySelector('.msgtp-transfer-chats-btn')) return;
 
         const button = document.createElement('button');
         button.type = 'button';
@@ -436,6 +529,7 @@ function injectTransferChatsButtons() {
         button.addEventListener('click', async event => {
             event.preventDefault();
             event.stopPropagation();
+            if (userSettings.transferEnabled === false) return;
             const currentScope = getTransferChatScope(footer);
             const chats = currentScope ? getTransferChats(currentScope) : [];
             if (!chats.length) {
@@ -464,13 +558,79 @@ function injectTransferChatsButtons() {
 }
 
 // =============================================================
-// 5. ИНИЦИАЛИЗАЦИЯ И НАБЛЮДАТЕЛЬ (DOM Observer)
+// 5. ПАСТЫ ОТЧЁТА ЗА СМЕНУ
+// =============================================================
+
+const SHIFT_REPORT_PASTES = [
+    {
+        key: 'shiftWorkEnabled', label: 'Копир. (работа)',
+        text: 'Отчёт за смену:\n\n-Работа в чатах MSGTP.\n\nПлан на сегодня:\n\n-В офис к 20:50.'
+    },
+    {
+        key: 'shiftWeekendEnabled', label: 'Копир. (вых.)',
+        text: 'Отчёт за смену:\n\n-Работа в чатах MSGTP.\n\nПлан на завтра и послезавтра:\n\n-Выходные.'
+    }
+];
+
+function injectShiftReportPastes() {
+    const isShiftReport = window.location.hostname === 'msgtp.langame.ru'
+        && /^\/shift-report(?:\/|$)/.test(window.location.pathname);
+    const save = isShiftReport ? Array.from(document.querySelectorAll('button.shiftReportPage__btn'))
+        .find(button => button.textContent.trim() === 'Сохранить') : null;
+    const existing = document.querySelector('.msgtp-shift-pastes');
+    if (!save || SHIFT_REPORT_PASTES.every(paste => userSettings[paste.key] === false)) {
+        existing?.remove();
+        return;
+    }
+    if (existing?.nextElementSibling === save) {
+        for (const paste of SHIFT_REPORT_PASTES) {
+            existing.querySelector(`[data-shift-paste="${paste.key}"]`).hidden = userSettings[paste.key] === false;
+        }
+        return;
+    }
+    existing?.remove();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msgtp-shift-pastes';
+    const status = document.createElement('span');
+    status.className = 'msgtp-shift-paste-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+
+    for (const paste of SHIFT_REPORT_PASTES) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'shiftReportPage__btn msgtp-shift-copy-btn';
+        button.textContent = paste.label;
+        button.dataset.shiftPaste = paste.key;
+        button.hidden = userSettings[paste.key] === false;
+        button.addEventListener('click', async event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (userSettings[paste.key] === false) return;
+            button.disabled = true;
+            status.textContent = '';
+            try {
+                await navigator.clipboard.writeText(paste.text);
+            } catch {
+                status.textContent = 'Не удалось скопировать. Попробуйте ещё раз.';
+            } finally {
+                button.disabled = false;
+            }
+        });
+        wrapper.appendChild(button);
+    }
+    wrapper.appendChild(status);
+    save.before(wrapper);
+}
+
+// =============================================================
+// 6. ИНИЦИАЛИЗАЦИЯ И НАБЛЮДАТЕЛЬ (DOM Observer)
 // =============================================================
 
 function checkAndInject() {
     if (!isTargetDomain()) {
         closeAdminMenu?.();
-        document.querySelectorAll('.msgtp-info-card, .msgtp-header-li, .msgtp-back-to-main-btn, .msgtp-transfer-chats-btn, .msgtp-transfer-chats-status').forEach(element => element.remove());
+        document.querySelectorAll('.msgtp-info-card, .msgtp-header-li, .msgtp-back-to-main-btn, .msgtp-transfer-chats-btn, .msgtp-transfer-chats-status, .msgtp-transfer-fields, .msgtp-shift-pastes').forEach(element => element.remove());
         return;
     }
     const existingCard = document.querySelector('section.clubInfo:not(.msgtp-info-card)');
@@ -480,6 +640,7 @@ function checkAndInject() {
     injectLangameHeaderButtons();
     injectBackToMainButton();
     injectTransferChatsButtons();
+    injectShiftReportPastes();
 }
 
 const observer = new MutationObserver(checkAndInject);

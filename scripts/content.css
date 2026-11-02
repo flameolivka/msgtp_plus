@@ -8,6 +8,11 @@
     margin: 12px 0;
 }
 
+section.msgtp-info-card[hidden],
+.msgtp-info-card .msgtp-card-row[hidden] {
+    display: none !important;
+}
+
 section.msgtp-info-card {
     font-family: "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 13px;
@@ -198,6 +203,67 @@ li.msgtp-header-li {
 }
 
 /* Передача списка чатов из модального окна */
+.msgtp-shift-pastes {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-right: 8px;
+}
+
+.msgtp-shift-pastes .msgtp-shift-copy-btn {
+    background: #facc15 !important;
+    color: #1f2937 !important;
+    border: 1px solid #eab308 !important;
+}
+
+.msgtp-shift-pastes .msgtp-shift-copy-btn:hover { background: #fde047 !important; }
+.msgtp-shift-pastes .msgtp-shift-copy-btn:disabled { opacity: .65; cursor: wait; }
+.msgtp-shift-pastes .msgtp-shift-copy-btn[hidden] { display: none !important; }
+.msgtp-shift-paste-status { font-size: 12px; color: var(--secondary, #64748b); }
+.msgtp-shift-paste-status:empty { display: none; }
+
+.msgtp-transfer-fields {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--outline-variant, #64748b);
+}
+
+.msgtp-transfer-fields .msgtp-transfer-field {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    min-width: 0;
+}
+
+.msgtp-transfer-field > span {
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.msgtp-transfer-field > textarea {
+    width: 100%;
+    min-height: 58px;
+    box-sizing: border-box;
+    resize: vertical;
+    border: 1px solid var(--outline-variant, #64748b);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--surface, transparent);
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.msgtp-transfer-field > textarea:focus-visible {
+    outline: 1px solid rgba(190, 190, 190, 0.6);
+    outline-offset: 1px;
+}
+
 .sheetModalPlain__footer .msgtp-transfer-chats-btn {
     background: #facc15 !important;
     color: #1f2937 !important;

@@ -1,9 +1,10 @@
-// Заполняем только форму авторизации на разрешённом HTTPS-сайте.
+// Вход через POST /auth.php только на разрешённом HTTPS-сайте.
 (() => {
     if (window.top !== window || location.protocol !== 'https:' || location.port || location.pathname !== '/auth.php') return;
     let visited = new WeakSet();
     let enabled = false;
     let featureEnabled = true;
+    let requestInFlight = false;
 
     function visible(input) {
         return !input.disabled && !input.readOnly && input.getClientRects().length > 0;
@@ -44,14 +45,9 @@
         status.textContent = `MSGTP+: ${text}`;
     }
 
-    function setInputValue(input, value) {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    async function fill(form, fields) {
-        if (fields.password.value) return;
+    async function login(form, fields) {
+        if (fields.password.value || requestInFlight) return;
+        let ownsRequest = false;
         try {
             const data = await chrome.runtime.sendMessage({ type: 'msgtp-vault-fill' });
             if (!data?.ok) return;
@@ -61,14 +57,12 @@
                 || !visible(fields.username) || !visible(fields.password)
                 || (fields.username.value && fields.username.value !== data.username)
                 || !sameOriginAction(form, fields.submitter)) return;
-            setInputValue(fields.username, data.username);
-            setInputValue(fields.password, data.password);
-            notice(form, 'логин и пароль заполнены.');
             if (form.querySelector('[name*="captcha" i], .g-recaptcha, .h-captcha, [data-sitekey], iframe[src*="recaptcha"], iframe[src*="hcaptcha"]')) {
-                notice(form, 'данные заполнены. Пройдите проверку и нажмите «Войти» вручную.');
+                notice(form, 'пройдите проверку и войдите вручную.');
                 return;
             }
-            if (!form.checkValidity() || !sameOriginAction(form, fields.submitter)) return;
+            if (Array.from(form.elements).some(element => element !== fields.username && element !== fields.password
+                && element.willValidate && !element.validity.valid)) return;
             // При ошибке авторизации не зацикливаем повторные попытки.
             try {
                 const key = 'msgtp-auto-login-at';
@@ -79,31 +73,57 @@
                 }
                 sessionStorage.setItem(key, String(Date.now()));
             } catch {
-                return; // Без защиты от повторов только заполняем поля.
+                notice(form, 'автовход недоступен. Войдите вручную.');
+                return;
             }
-            if (fields.submitter) fields.submitter.click();
-            else HTMLFormElement.prototype.requestSubmit.call(form);
+            const body = new URLSearchParams();
+            // Сохраняем скрытые параметры формы, например CSRF-токен.
+            for (const element of form.elements) {
+                if (element.type === 'hidden' && element.name && !element.disabled
+                    && !['login', 'password'].includes(element.name)) body.append(element.name, element.value);
+            }
+            if (fields.submitter?.name && !['login', 'password'].includes(fields.submitter.name)) {
+                body.append(fields.submitter.name, fields.submitter.value);
+            }
+            body.set('login', data.username);
+            body.set('password', data.password);
+            requestInFlight = true;
+            ownsRequest = true;
+            notice(form, 'выполняется вход…');
+            const response = await fetch('/auth.php', {
+                method: 'POST', credentials: 'same-origin', mode: 'same-origin', body,
+                // Не пересылаем тело с паролем при перенаправлениях POST.
+                redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(15000)
+            });
+            if (!response.ok && response.type !== 'opaqueredirect') {
+                notice(form, 'сервер отклонил вход. Проверьте данные и войдите вручную.');
+                return;
+            }
+            if (enabled && featureEnabled) window.location.reload();
         } catch {
-            notice(form, 'не удалось заполнить форму. Откройте настройки входа и попробуйте ещё раз.');
+            notice(form, 'не удалось выполнить вход. Проверьте соединение и войдите вручную.');
+        } finally {
+            if (ownsRequest) requestInFlight = false;
         }
     }
 
     function checkForms() {
-        if (!enabled || !featureEnabled) return;
+        if (!enabled || !featureEnabled || document.readyState === 'loading') return;
         for (const form of document.forms) {
             if (visited.has(form)) continue;
             const fields = findFields(form);
             if (!fields) continue;
             visited.add(form);
-            void fill(form, fields);
+            void login(form, fields);
         }
     }
 
     MSGTPSettings.load().then(settings => {
         enabled = MSGTPSettings.matches(location.hostname, settings.domains);
         if (!enabled) return;
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', checkForms, { once: true });
         checkForms();
-        new MutationObserver(checkForms).observe(document.body, { childList: true, subtree: true });
+        new MutationObserver(checkForms).observe(document, { childList: true, subtree: true });
     }).catch(() => {});
 
     chrome.storage.onChanged.addListener((changes, area) => {
