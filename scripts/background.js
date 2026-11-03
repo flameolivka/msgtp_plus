@@ -48,7 +48,10 @@ function scheduleDomainSync() {
     return syncQueue;
 }
 
-chrome.runtime.onInstalled.addListener(() => { void scheduleDomainSync(); });
+chrome.runtime.onInstalled.addListener(() => {
+    syncQueue = syncQueue.catch(() => {}).then(() => MSGTPSettings.migrateDomains());
+    void scheduleDomainSync();
+});
 chrome.runtime.onStartup.addListener(() => { void scheduleDomainSync(); });
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes[MSGTPSettings.key]) void scheduleDomainSync();

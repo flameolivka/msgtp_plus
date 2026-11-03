@@ -11,7 +11,7 @@ globalThis.MSGTPSettings = {
         helpMentions: '@LGS_adv_sup',
         helpTehMentions: '@LGS_Teh_Sup @ghoultripless',
         questionTag: '#вопрос',
-        domains: 'langame.ru\nlangame-pr.ru\nlangame-soft.ru\nlangamepro.ru\ncls.expert\ncc.f5center.com'
+        domains: 'langame.ru\nlangame-pr.ru\nlangame-soft.ru\nlangamepro.ru\ncls.expert\ncc.f5center.com\nlangamesftw.ru'
     },
     parseDomains(value) {
         const domains = String(value).split(/[\s,;]+/).filter(Boolean).map(entry => {
@@ -43,6 +43,18 @@ globalThis.MSGTPSettings = {
             if (typeof fallback === 'boolean') return [key, typeof value?.[key] === 'boolean' ? value[key] : fallback];
             return [key, typeof value?.[key] === 'string' ? value[key].trim().replace(/\s+/g, ' ') : fallback];
         }));
+    },
+    async migrateDomains() {
+        const migrationKey = 'msgtpLangamesftwDomainAdded';
+        const stored = await chrome.storage.local.get([this.key, migrationKey]);
+        if (stored[migrationKey]) return;
+        const updates = { [migrationKey]: true };
+        if (stored[this.key]) {
+            const settings = this.normalize(stored[this.key]);
+            settings.domains = [...new Set([...this.parseDomains(settings.domains), 'langamesftw.ru'])].join('\n');
+            updates[this.key] = settings;
+        }
+        await chrome.storage.local.set(updates);
     },
     async load() {
         const stored = await chrome.storage.local.get(this.key);
