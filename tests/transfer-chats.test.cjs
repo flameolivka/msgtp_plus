@@ -63,7 +63,7 @@ function setup() {
     let copied;
     const context = {
         Blob, console, userSettings: { transferMentions: '@test' },
-        window: { location: { hostname: 'msgtp.langame.ru', pathname: '/im/chat/' } },
+        window: { location: { hostname: 'msgtp.langame.ru', pathname: '/minmap' } },
         document: { body, createElement: tag => new Element(tag), querySelectorAll: selector => body.querySelectorAll(selector) },
         navigator: { clipboard: { async write(items) { copied = items[0].data; } } },
         ClipboardItem: class { constructor(data) { this.data = data; } }
@@ -73,6 +73,27 @@ function setup() {
     vm.runInContext(source.slice(source.indexOf('const TRANSFER_FIELDS'), source.indexOf('const SHIFT_REPORT_PASTES')), context);
     return { context, first, second, modal, footer, get copied() { return copied; } };
 }
+
+test('transfer controls support minmap, excluding old chat routes and other hosts', () => {
+    for (const pathname of ['/minmap', '/minmap/']) {
+        const env = setup();
+        env.context.window.location.pathname = pathname;
+        env.context.injectTransferChatsButtons();
+        assert.equal(env.footer.querySelectorAll('button').length, 1, pathname);
+        assert.equal(env.first.querySelectorAll('textarea').length, 3, pathname);
+    }
+    for (const pathname of ['/minmap-other', '/im/chat', '/im/chat/', '/im/chats', '/']) {
+        const env = setup();
+        env.context.window.location.pathname = pathname;
+        env.context.injectTransferChatsButtons();
+        assert.equal(env.footer.querySelectorAll('button').length, 0, pathname);
+    }
+    const env = setup();
+    env.context.window.location.pathname = '/minmap';
+    env.context.window.location.hostname = 'other.langame.ru';
+    env.context.injectTransferChatsButtons();
+    assert.equal(env.footer.querySelectorAll('button').length, 0);
+});
 
 test('injects one editor per chat and copies live multiline notes with safe quote formatting', async () => {
     const env = setup();

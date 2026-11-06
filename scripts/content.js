@@ -503,7 +503,7 @@ function formatTransferChats(chats) {
 }
 
 function injectTransferChatsButtons() {
-    if (window.location.hostname !== 'msgtp.langame.ru' || !/^\/im\/chat(?:\/|$)/.test(window.location.pathname)) return;
+    if (window.location.hostname !== 'msgtp.langame.ru' || !/^\/minmap(?:\/|$)/.test(window.location.pathname)) return;
     if (userSettings.transferEnabled === false) {
         document.querySelectorAll('.msgtp-transfer-chats-btn, .msgtp-transfer-chats-status, .msgtp-transfer-fields').forEach(element => element.remove());
         return;
